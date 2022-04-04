@@ -9,3 +9,7 @@ edition = "2021"
 riscv-rt = "0.8.1"
 panic-halt = "0.2.0"
 riscv = "0.7.0"
+
+[profile.release]
+# or "z"
+opt-level = "s"

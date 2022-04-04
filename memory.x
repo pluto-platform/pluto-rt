@@ -1,7 +1,7 @@
 MEMORY
 {
-  RAM : ORIGIN = 0x80000000, LENGTH = 4K
-  FLASH : ORIGIN = 0x20000000, LENGTH = 4K
+  RAM : ORIGIN = 0x80000000, LENGTH = 1K
+  FLASH : ORIGIN = 0x00, LENGTH = 2K
 }
 
 REGION_ALIAS("REGION_TEXT", FLASH);
@@ -11,5 +11,5 @@ REGION_ALIAS("REGION_BSS", RAM);
 REGION_ALIAS("REGION_HEAP", RAM);
 REGION_ALIAS("REGION_STACK", RAM);
 
-_max_hart_id = 1;
-_hart_stack_size = 1K;
+_max_hart_id = 0;
+_hart_stack_size = 512;
