@@ -9,11 +9,20 @@ use riscv_rt::entry;
 #[entry]
 fn main() -> ! {
     let raw = 0x10000 as *mut u8;
-    let mut state = 0u8;
+
+    let mut state = false;
     loop{
-        unsafe{ raw.write_volatile(state) }
+        send_letter('\r');
+        send_letter('\n');
+        send_letter('H');
+        send_letter('e');
+        send_letter('l');
+        send_letter('l');
+        send_letter('o');
+        send_letter('!');
+        unsafe{ raw.write_volatile(state as u8) }
         state = !state;
-        wait(100);
+        wait(2000000);
     }
 }
 
@@ -21,4 +30,15 @@ fn wait(cycles: u32) {
     for _ in 0..cycles {
         unsafe { asm!("nop") }
     }
+}
+
+fn send_letter(letter: char) {
+    let uart = 0x20000 as *mut u8;
+    //while !is_ready() { unsafe { asm!("nop") } }
+    unsafe{ uart.write_volatile(letter as u8) }
+    wait(100000);
+}
+fn is_ready() -> bool {
+    let uart = 0x20000 as *mut u8;
+    unsafe{ uart.read_volatile() == 1 }
 }
