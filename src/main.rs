@@ -6,25 +6,22 @@ extern crate panic_halt;
 use core::arch::asm;
 use riscv_rt::entry;
 
+static MESSAGE: &str = "\r\nHello!";
+
 #[entry]
 fn main() -> ! {
     let raw = 0x10000 as *mut u8;
 
     let mut state = false;
     loop{
-        send_letter('\r');
-        send_letter('\n');
-        send_letter('H');
-        send_letter('e');
-        send_letter('l');
-        send_letter('l');
-        send_letter('o');
-        send_letter('!');
+        for letter in MESSAGE.chars() {
+            send_letter(letter);
+        }
         unsafe{ raw.write_volatile(state as u8) }
         state = !state;
-        wait(2000000);
+        wait(2000000); //2000000
     }
-}
+
 
 fn wait(cycles: u32) {
     for _ in 0..cycles {
@@ -34,9 +31,8 @@ fn wait(cycles: u32) {
 
 fn send_letter(letter: char) {
     let uart = 0x20000 as *mut u8;
-    //while !is_ready() { unsafe { asm!("nop") } }
+    while !is_ready() { unsafe { asm!("nop") } }
     unsafe{ uart.write_volatile(letter as u8) }
-    wait(100000);
 }
 fn is_ready() -> bool {
     let uart = 0x20000 as *mut u8;
