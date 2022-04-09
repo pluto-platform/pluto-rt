@@ -12,15 +12,16 @@ static MESSAGE: &str = "\r\nHello!";
 fn main() -> ! {
     let raw = 0x10000 as *mut u8;
 
-    let mut state = false;
-    loop{
+    let mut state = true;
+    loop {
         for letter in MESSAGE.chars() {
             send_letter(letter);
         }
-        unsafe{ raw.write_volatile(state as u8) }
+        unsafe { raw.write_volatile(state as u8) }
         state = !state;
         wait(2000000); //2000000
     }
+}
 
 
 fn wait(cycles: u32) {
