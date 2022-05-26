@@ -20,6 +20,7 @@ fn main() -> ! {
 
     unsafe {
         riscv::register::mie::set_mext();
+        enable_custom_interrupt(0);
         riscv::register::mstatus::set_mie();
     }
 
@@ -33,9 +34,13 @@ fn main() -> ! {
         }
         state = !state;
         wait(10_000_000); //2000000
+
     }
 }
 
+unsafe fn enable_custom_interrupt(i: u8) {
+    asm!("csrrs x0, mie, {0}", in(reg) 1usize << (i+16))
+}
 
 fn wait(cycles: u32) {
     (0..cycles).for_each(|_| unsafe { asm!("nop") } );
@@ -54,6 +59,10 @@ fn set_period(period: u32) {
     let uart = 0x20004 as *mut u32;
     unsafe { uart.write_volatile(period) }
 }
+fn get_letter() -> char {
+    let uart = 0x20008 as *mut char;
+    unsafe { uart.read_volatile() }
+}
 
 fn clear_button_interrupt() {
     let button = 0x30000 as *mut u8;
@@ -68,7 +77,7 @@ fn custom_exception_handler(trap_frame: &riscv_rt::TrapFrame) {
         send_letter('a');
         send_letter('l');
         send_letter('l');
-    }
+    } else {loop {}}
 }
 
 #[export_name = "MachineExternal"]
@@ -80,4 +89,11 @@ fn custom_external_handler() {
     send_letter('t');
     send_letter('o');
     send_letter('n');
+}
+
+#[export_name = "DefaultHandler"]
+fn default_interrupt_handler() {
+    if riscv::register::mcause::read().code() == 16 {
+        send_letter(get_letter());
+    }
 }
