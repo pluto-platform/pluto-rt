@@ -6,8 +6,6 @@ extern crate panic_halt;
 use core::arch::asm;
 use riscv_rt::entry;
 
-//static MESSAGE: &str = "\r\nHello!";
-
 #[entry]
 fn main() -> ! {
     let led = 0x10000 as *mut u8;
