@@ -3,3 +3,4 @@ test.bin
 riscv-test.iml
 /.idea
 Cargo.lock
+rust.bin

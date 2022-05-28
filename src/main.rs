@@ -1,20 +1,31 @@
 #![no_std]
 #![no_main]
 
+mod uart;
+mod lib;
+mod led;
+
 extern crate panic_halt;
 
 use core::arch::asm;
 use riscv_rt::entry;
+use nb;
+use nb::block;
+use uart::{Uart, UART};
+use lib::{ecall, wait, enable_custom_interrupt};
+use led::Led;
+
+static MESSAGE: &str = "\r\nHello";
 
 #[entry]
 fn main() -> ! {
-    let led = 0x10000 as *mut u8;
 
-    let mut state = false;
+    let uart = Uart::init(0x20000, 50_000_000, 115_200);
+    let led = Led::init(0x10000);
 
-    set_period(50_000_000/115_200);
+    ecall();
 
-    unsafe { asm!("ecall") }
+    println!("{} World!", MESSAGE);
 
     unsafe {
         riscv::register::mie::set_mext();
@@ -22,45 +33,14 @@ fn main() -> ! {
         riscv::register::mstatus::set_mie();
     }
 
-
     loop {
-        unsafe { led.write_volatile(state as u8) }
-        if state {
-            send_letter('*');
-        } else {
-            send_letter('_');
-        }
-        state = !state;
-        wait(10_000_000); //2000000
-
+        led.shift_left();
+        print!("*");
+        wait(5_000_000);
     }
 }
 
-unsafe fn enable_custom_interrupt(i: u8) {
-    asm!("csrrs x0, mie, {0}", in(reg) 1usize << (i+16))
-}
 
-fn wait(cycles: u32) {
-    (0..cycles).for_each(|_| unsafe { asm!("nop") } );
-}
-
-fn send_letter(letter: char) {
-    let uart = 0x20008 as *mut u8;
-    while !is_ready() { unsafe { asm!("nop") } }
-    unsafe{ uart.write_volatile(letter as u8) }
-}
-fn is_ready() -> bool {
-    let uart = 0x20000 as *mut u8;
-    unsafe{ uart.read_volatile() & 0x02 == 0x02 }
-}
-fn set_period(period: u32) {
-    let uart = 0x20004 as *mut u32;
-    unsafe { uart.write_volatile(period) }
-}
-fn get_letter() -> char {
-    let uart = 0x20008 as *mut char;
-    unsafe { uart.read_volatile() }
-}
 
 fn clear_button_interrupt() {
     let button = 0x30000 as *mut u8;
@@ -68,30 +48,21 @@ fn clear_button_interrupt() {
 }
 
 #[export_name = "ExceptionHandler"]
-fn custom_exception_handler(trap_frame: &riscv_rt::TrapFrame) {
+fn custom_exception_handler(_trap_frame: &riscv_rt::TrapFrame) {
     if riscv::register::mcause::read().code() == 11 {
-        send_letter('e');
-        send_letter('c');
-        send_letter('a');
-        send_letter('l');
-        send_letter('l');
+        println!("ecall");
     } else {loop {}}
 }
 
 #[export_name = "MachineExternal"]
 fn custom_external_handler() {
     clear_button_interrupt();
-    send_letter('b');
-    send_letter('u');
-    send_letter('t');
-    send_letter('t');
-    send_letter('o');
-    send_letter('n');
+    println!("button");
 }
 
 #[export_name = "DefaultHandler"]
 fn default_interrupt_handler() {
     if riscv::register::mcause::read().code() == 16 {
-        send_letter(get_letter());
+        UART.write_byte(UART.read_byte())
     }
 }
